@@ -15,3 +15,7 @@ things a bit and occasionally have GTK spit out error messages.
 Rarely, the finalizer will be called and unref() the loader object
 before gtk_loader_get_pixbuf() has a chance to do anything, resulting
 in a nil Pixbuf being returned.
+
+```
+(gotk3-pixbufloader.exe:7732): GdkPixbuf-CRITICAL **: gdk_pixbuf_loader_get_pixbuf: assertion 'GDK_IS_PIXBUF_LOADER (loader)' failed
+```
