@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io"
 	"log"
 	"os"
@@ -9,7 +10,9 @@ import (
 	"github.com/gotk3/gotk3/gdk"
 )
 
-func loadPixbuf(wg *sync.WaitGroup, pb **gdk.Pixbuf, file string) {
+var iterations = flag.Int("iterations", 1, "Number of iterations")
+
+func loadPixbuf(wg *sync.WaitGroup, file string, out chan<- *gdk.Pixbuf) {
 	defer wg.Done()
 
 	loader, err := gdk.PixbufLoaderNew()
@@ -37,36 +40,50 @@ func loadPixbuf(wg *sync.WaitGroup, pb **gdk.Pixbuf, file string) {
 		return
 	}
 
-	*pb, err = loader.GetPixbuf()
+	pb, err := loader.GetPixbuf()
 	if err != nil {
 		log.Printf("GetPixBuf: %q\n", err)
 		return
 	}
+	out <- pb
 }
 
-func loadPixbufs(files []string) (rv []*gdk.Pixbuf) {
-	rv = make([]*gdk.Pixbuf, len(files))
+func loadPixbufs(files []string) <-chan *gdk.Pixbuf {
+	rv := make(chan *gdk.Pixbuf, len(files))
 	var wg sync.WaitGroup
 	wg.Add(len(files))
-	for i, f := range files {
-		var pb *gdk.Pixbuf
-		go loadPixbuf(&wg, &pb, f)
-		rv[i] = pb
+	for _, f := range files {
+		go loadPixbuf(&wg, f, rv)
 	}
-	wg.Wait()
-	return
+	go func() {
+		wg.Wait()
+		close(rv)
+	}()
+	return rv
 }
 
 func main() {
-	if len(os.Args) < 2 {
+	flag.Parse()
+
+	files := flag.Args()
+	if len(files) < 1 {
 		log.Printf("usage: pixbufloader pic1 [pic2 ... picN]\n")
+		return
 	}
-	pbs := loadPixbufs(os.Args[1:])
-	good := 0
-	for _, pb := range pbs {
-		if pb != nil {
-			good++
+
+	totalGood := 0
+	total := 0
+	for i := 0; i < *iterations; i++ {
+		good := 0
+		for pb := range loadPixbufs(files) {
+			if pb != nil {
+				good++
+			}
 		}
+		log.Printf("got %d/%d pixbufs\n", good, len(files))
+		totalGood += good
+		total += len(files)
 	}
-	log.Printf("got %d/%d pixbufs\n", good, len(pbs))
+	log.Printf("after %d iterations: got %d/%d pixbufs (failed %d)\n",
+		*iterations, totalGood, total, total-totalGood)
 }
