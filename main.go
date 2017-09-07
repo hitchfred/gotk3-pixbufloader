@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"runtime"
+	//"runtime"
 	"sync"
 
 	"github.com/gotk3/gotk3/gdk"
@@ -45,7 +45,7 @@ func loadPixbuf(wg *sync.WaitGroup, file string, out chan<- *gdk.Pixbuf) {
 	// Commenting the KeepAlive() out will make GetPixbuf() fail periodically,
 	// because Go's finalizer *can* run while the call is made into C
 	// gtk_pixbuf_loader_get_pixbuf()
-	runtime.KeepAlive(loader)
+	//runtime.KeepAlive(loader)
 	if err != nil {
 		log.Printf("GetPixBuf: %q\n", err)
 		return
