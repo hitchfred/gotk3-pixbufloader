@@ -43,8 +43,9 @@ func loadPixbuf(wg *sync.WaitGroup, file string, out chan<- *gdk.Pixbuf) {
 
 	pb, err := loader.GetPixbuf()
 	// Commenting the KeepAlive() out will make GetPixbuf() fail periodically,
-	// because Go's finalizer *can* run while the call is made into C
-	// gtk_pixbuf_loader_get_pixbuf()
+	// because Go can notice that loader is unreachable and run the finalizer
+	// while the call is made into C gtk_pixbuf_loader_get_pixbuf(). Rarely,
+	// this will cause GetPixBuf() to return a nil Pixbuf.
 	//runtime.KeepAlive(loader)
 	if err != nil {
 		log.Printf("GetPixBuf: %q\n", err)
